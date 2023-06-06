@@ -1,6 +1,6 @@
 # Exported from:        https://ip-172-31-39-126.eu-west-3.compute.internal:5516/
 # Release version:      22.2.0
-# Date created:         Tue Jun 06 12:25:59 UTC 2023
+# Date created:         Tue Jun 06 12:39:39 UTC 2023
 
 ---
 apiVersion: xl-release/v1
@@ -70,53 +70,18 @@ spec:
     - name: Deployment plan
       type: xlrelease.SequentialGroup
       tasks:
-      - name: Deploy Database Module
-        type: xlrelease.UnknownType
-        flagStatus: ATTENTION_NEEDED
-        flagComment: Task 'Deploy Database Module' in Phase 'IST' has been replaced
-          by an unknown task. The task of type 'ansible.LaunchJob' could not be found
-          because of a missing plugin.
-        facets:
-        - type: udm.DeploymentTaskFacet
-          variableMapping:
-            version: "${Data_Version}"
-        precondition: "result = ('Data' in releaseVariables['Components List'])"
-        tags:
-        - deployment
-        - ansible
-        - database
+      - name: Deploy Database
+        type: ansibletower.runJobTemplate
+        ansibletower: at
       - name: Deploy
         type: xlrelease.ParallelGroup
         tasks:
-        - name: Deploy Front Module
-          type: xlrelease.UnknownType
-          flagStatus: ATTENTION_NEEDED
-          flagComment: Task 'Deploy Front Module' in Phase 'IST' has been replaced
-            by an unknown task. The task of type 'ansible.LaunchJob' could not be
-            found because of a missing plugin.
-          facets:
-          - type: udm.DeploymentTaskFacet
-            variableMapping:
-              version: "${Front_Version}"
-          precondition: "result = ('Front' in releaseVariables['Components List'])"
-          tags:
-          - ansible
-          - deployment
-        - name: Deploy Back Module
-          type: xlrelease.UnknownType
-          flagStatus: ATTENTION_NEEDED
-          flagComment: Task 'Deploy Back Module' in Phase 'IST' has been replaced
-            by an unknown task. The task of type 'ansible.LaunchJob' could not be
-            found because of a missing plugin.
-          facets:
-          - type: udm.DeploymentTaskFacet
-            variableMapping:
-              version: "${Back_Version}"
-          precondition: "result = ('Back' in releaseVariables['Components List'])"
-          taskRecoverOp: SKIP_TASK
-          tags:
-          - ansible
-          - deployment
+        - name: Deploy front
+          type: ansibletower.runJobTemplate
+          ansibletower: at
+        - name: Deploy backend
+          type: ansibletower.runJobTemplate
+          ansibletower: at
     - name: Check Quality of Code
       type: sonar.checkCompliance
       resource: my-sonar-app
@@ -141,16 +106,6 @@ spec:
       query: "project = 2366-rm AND status in (Done) AND fixVersion = ${release_version}"
       variableMapping:
         pythonScript.issues: "${Jira Tickets List}"
-    - name: Get list of components to deploy
-      type: xlrelease.Task
-      flagStatus: ATTENTION_NEEDED
-      flagComment: Task 'Get list of components to deploy' in Phase 'QA' has been
-        replaced by a manual task. The task of type 'jira.GetIssuesDetailsSet' could
-        not be found because of a missing plugin.
-      taskRecoverOp: RUN_SCRIPT
-      variableMapping:
-        pythonScript.issuesIds: "${Jira Tickets List}"
-        pythonScript.issuesDetails: "${Components List}"
     - name: Build Version
       type: xlrelease.ScriptTask
       locked: true
@@ -187,55 +142,21 @@ spec:
           variableMapping:
             version: "${release_version}"
         precondition: "result = ('Data' in releaseVariables['Components List'])"
-    - name: Deployment plan
-      type: xlrelease.ParallelGroup
+    - name: Deployment plan (QA)
+      type: xlrelease.SequentialGroup
       tasks:
-      - name: Deploy Database Module
-        type: xlrelease.UnknownType
-        flagStatus: ATTENTION_NEEDED
-        flagComment: Task 'Deploy Database Module' in Phase 'QA' has been replaced
-          by an unknown task. The task of type 'ansible.LaunchJob' could not be found
-          because of a missing plugin.
-        facets:
-        - type: udm.DeploymentTaskFacet
-          variableMapping:
-            version: "${Data_Version}"
-        precondition: "result = ('Data' in releaseVariables['Components List'])"
-        tags:
-        - Deployment
-        - Ansible
-        - database
-      - name: Deployment
-        type: xlrelease.SequentialGroup
+      - name: Deploy Database
+        type: ansibletower.runJobTemplate
+        ansibletower: at
+      - name: Deploy
+        type: xlrelease.ParallelGroup
         tasks:
-        - name: Deploy Front Module
-          type: xlrelease.UnknownType
-          flagStatus: ATTENTION_NEEDED
-          flagComment: Task 'Deploy Front Module' in Phase 'QA' has been replaced
-            by an unknown task. The task of type 'ansible.LaunchJob' could not be
-            found because of a missing plugin.
-          facets:
-          - type: udm.DeploymentTaskFacet
-            variableMapping:
-              version: "${Front_Version}"
-          precondition: "result = ('Front' in releaseVariables['Components List'])"
-          tags:
-          - Deployment
-          - Ansible
-        - name: Deploy Back Module
-          type: xlrelease.UnknownType
-          flagStatus: ATTENTION_NEEDED
-          flagComment: Task 'Deploy Back Module' in Phase 'QA' has been replaced by
-            an unknown task. The task of type 'ansible.LaunchJob' could not be found
-            because of a missing plugin.
-          facets:
-          - type: udm.DeploymentTaskFacet
-            variableMapping:
-              version: "${Back_Version}"
-          precondition: "result = ('Back' in releaseVariables['Components List'])"
-          tags:
-          - Deployment
-          - Ansible
+        - name: Deploy front
+          type: ansibletower.runJobTemplate
+          ansibletower: at
+        - name: Deploy backend
+          type: ansibletower.runJobTemplate
+          ansibletower: at
     - name: Sanitary Check
       type: xlrelease.GateTask
       conditions:
@@ -294,55 +215,21 @@ spec:
         type: xlrelease.GateCondition
       - name: Network check
         type: xlrelease.GateCondition
-    - name: Deployment plan
-      type: xlrelease.ParallelGroup
+    - name: Deployment plan (preprod)
+      type: xlrelease.SequentialGroup
       tasks:
-      - name: Deploy Database Module
-        type: xlrelease.UnknownType
-        flagStatus: ATTENTION_NEEDED
-        flagComment: Task 'Deploy Database Module' in Phase 'PreProd' has been replaced
-          by an unknown task. The task of type 'ansible.LaunchJob' could not be found
-          because of a missing plugin.
-        facets:
-        - type: udm.DeploymentTaskFacet
-          variableMapping:
-            version: "${Data_Version}"
-        precondition: "result = ('Data' in releaseVariables['Components List'])"
-        tags:
-        - Deployment
-        - Ansible
-        - database
-      - name: Deployment
-        type: xlrelease.SequentialGroup
+      - name: Deploy Database
+        type: ansibletower.runJobTemplate
+        ansibletower: at
+      - name: Deploy
+        type: xlrelease.ParallelGroup
         tasks:
-        - name: Deploy Front Module
-          type: xlrelease.UnknownType
-          flagStatus: ATTENTION_NEEDED
-          flagComment: Task 'Deploy Front Module' in Phase 'PreProd' has been replaced
-            by an unknown task. The task of type 'ansible.LaunchJob' could not be
-            found because of a missing plugin.
-          facets:
-          - type: udm.DeploymentTaskFacet
-            variableMapping:
-              version: "${Front_Version}"
-          precondition: "result = ('Front' in releaseVariables['Components List'])"
-          tags:
-          - Deployment
-          - Ansible
-        - name: Deploy Back Module
-          type: xlrelease.UnknownType
-          flagStatus: ATTENTION_NEEDED
-          flagComment: Task 'Deploy Back Module' in Phase 'PreProd' has been replaced
-            by an unknown task. The task of type 'ansible.LaunchJob' could not be
-            found because of a missing plugin.
-          facets:
-          - type: udm.DeploymentTaskFacet
-            variableMapping:
-              version: "${Back_Version}"
-          precondition: "result = ('Back' in releaseVariables['Components List'])"
-          tags:
-          - Deployment
-          - Ansible
+        - name: Deploy front
+          type: ansibletower.runJobTemplate
+          ansibletower: at
+        - name: Deploy backend
+          type: ansibletower.runJobTemplate
+          ansibletower: at
     - name: Sanitary Check
       type: xlrelease.GateTask
       conditions:
@@ -405,59 +292,21 @@ spec:
         type: xlrelease.GateCondition
     - name: Add Maintenance Page
       type: xlrelease.ScriptTask
-    - name: Deployment plan
-      type: xlrelease.ParallelGroup
+    - name: Deployment plan (prod)
+      type: xlrelease.SequentialGroup
       tasks:
-      - name: Deploy Database Module
-        type: xlrelease.UnknownType
-        flagStatus: ATTENTION_NEEDED
-        flagComment: Task 'Deploy Database Module' in Phase 'Prod' has been replaced
-          by an unknown task. The task of type 'ansible.LaunchJob' could not be found
-          because of a missing plugin.
-        facets:
-        - type: udm.DeploymentTaskFacet
-          variableMapping:
-            version: "${Data_Version}"
-        precondition: "result = ('Data' in releaseVariables['Components List'])"
-        tags:
-        - Deployment
-        - Ansible
-        - database
-        - production
-      - name: Deployment
-        type: xlrelease.SequentialGroup
+      - name: Deploy Database
+        type: ansibletower.runJobTemplate
+        ansibletower: at
+      - name: Deploy
+        type: xlrelease.ParallelGroup
         tasks:
-        - name: Deploy Front Module
-          type: xlrelease.UnknownType
-          flagStatus: ATTENTION_NEEDED
-          flagComment: Task 'Deploy Front Module' in Phase 'Prod' has been replaced
-            by an unknown task. The task of type 'ansible.LaunchJob' could not be
-            found because of a missing plugin.
-          facets:
-          - type: udm.DeploymentTaskFacet
-            variableMapping:
-              version: "${Front_Version}"
-          precondition: "result = ('Front' in releaseVariables['Components List'])"
-          tags:
-          - Deployment
-          - Ansible
-          - production
-        - name: Deploy Back Module
-          type: xlrelease.UnknownType
-          flagStatus: ATTENTION_NEEDED
-          flagComment: Task 'Deploy Back Module' in Phase 'Prod' has been replaced
-            by an unknown task. The task of type 'ansible.LaunchJob' could not be
-            found because of a missing plugin.
-          facets:
-          - type: udm.DeploymentTaskFacet
-            variableMapping:
-              version: "${Back_Version}"
-          precondition: "result = ('Back' in releaseVariables['Components List'])"
-          tags:
-          - Deployment
-          - Ansible
-          - production
-          - at risk
+        - name: Deploy front
+          type: ansibletower.runJobTemplate
+          ansibletower: at
+        - name: Deploy backend
+          type: ansibletower.runJobTemplate
+          ansibletower: at
     - name: Remove Maintenance Page
       type: xlrelease.ScriptTask
     - name: Sanitary Check
