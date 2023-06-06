@@ -1,0 +1,739 @@
+# Exported from:        https://ip-172-31-39-126.eu-west-3.compute.internal:5516/
+# Release version:      22.2.0
+# Date created:         Tue Jun 06 12:25:59 UTC 2023
+
+---
+apiVersion: xl-release/v1
+kind: Templates
+metadata:
+  home: releaseAsCode/dev
+spec:
+- template: JpetStore2 - Demo Release as code
+  description: Release de demo
+  scheduledStartDate: 2021-11-10T08:00:00Z
+  phases:
+  - phase: IST
+    tasks:
+    - name: Get Jira Tickets
+      type: jira.Query
+      username: BpH0O1hLS6gMxyVdAZD7SRceeOL7poqq
+      apiToken: !value "jira_Query_Get_Jira_Tickets_apiToken"
+      query: project = arvida test
+      variableMapping:
+        pythonScript.issues: "${Jira Tickets List}"
+    - name: Get list of components to deploy
+      type: xlrelease.Task
+      flagStatus: ATTENTION_NEEDED
+      flagComment: Task 'Get list of components to deploy' in Phase 'IST' has been
+        replaced by a manual task. The task of type 'jira.GetIssuesDetailsSet' could
+        not be found because of a missing plugin.
+      taskRecoverOp: RUN_SCRIPT
+      variableMapping:
+        pythonScript.issuesIds: "${Jira Tickets List}"
+        pythonScript.issuesDetails: "${Components List}"
+    - name: Build Version
+      type: xlrelease.ScriptTask
+      locked: true
+      script: |-
+        releaseVariables['Front_Version']= "${release_version}-SNAPSHOT"
+        releaseVariables['Back_Version']= "${release_version}-SNAPSHOT"
+        releaseVariables['Data_Version']= "${release_version}-SNAPSHOT"
+    - name: Build
+      type: xlrelease.SequentialGroup
+      tasks:
+      - name: Build Front Snapshot
+        type: jenkins.Build
+        jobName: build-demo
+        precondition: |-
+          result = ('Front' in releaseVariables['Components List'])
+          releaseVariables['Front Snapshot version']= "1.0-SNAPSHOT"
+      - name: Build Back Snapshot
+        type: jenkins.Build
+        jobName: build-demo
+        facets:
+        - type: udm.DeploymentTaskFacet
+          variableMapping:
+            version: "${release_version}"
+        precondition: "result = ('Back' in releaseVariables['Components List'])"
+        tags:
+        - Build
+      - name: Build Data Snapshot
+        type: jenkins.Build
+        jobName: build-demo
+        facets:
+        - type: udm.DeploymentTaskFacet
+          variableMapping:
+            version: "${release_version}"
+        precondition: |-
+          result = ('Data' in releaseVariables['Components List'])
+          releaseVariables['Data Snapshot version']= "1.0-SNAPSHOT"
+    - name: Deployment plan
+      type: xlrelease.SequentialGroup
+      tasks:
+      - name: Deploy Database Module
+        type: xlrelease.UnknownType
+        flagStatus: ATTENTION_NEEDED
+        flagComment: Task 'Deploy Database Module' in Phase 'IST' has been replaced
+          by an unknown task. The task of type 'ansible.LaunchJob' could not be found
+          because of a missing plugin.
+        facets:
+        - type: udm.DeploymentTaskFacet
+          variableMapping:
+            version: "${Data_Version}"
+        precondition: "result = ('Data' in releaseVariables['Components List'])"
+        tags:
+        - deployment
+        - ansible
+        - database
+      - name: Deploy
+        type: xlrelease.ParallelGroup
+        tasks:
+        - name: Deploy Front Module
+          type: xlrelease.UnknownType
+          flagStatus: ATTENTION_NEEDED
+          flagComment: Task 'Deploy Front Module' in Phase 'IST' has been replaced
+            by an unknown task. The task of type 'ansible.LaunchJob' could not be
+            found because of a missing plugin.
+          facets:
+          - type: udm.DeploymentTaskFacet
+            variableMapping:
+              version: "${Front_Version}"
+          precondition: "result = ('Front' in releaseVariables['Components List'])"
+          tags:
+          - ansible
+          - deployment
+        - name: Deploy Back Module
+          type: xlrelease.UnknownType
+          flagStatus: ATTENTION_NEEDED
+          flagComment: Task 'Deploy Back Module' in Phase 'IST' has been replaced
+            by an unknown task. The task of type 'ansible.LaunchJob' could not be
+            found because of a missing plugin.
+          facets:
+          - type: udm.DeploymentTaskFacet
+            variableMapping:
+              version: "${Back_Version}"
+          precondition: "result = ('Back' in releaseVariables['Components List'])"
+          taskRecoverOp: SKIP_TASK
+          tags:
+          - ansible
+          - deployment
+    - name: Check Quality of Code
+      type: sonar.checkCompliance
+      resource: my-sonar-app
+    - name: Sanitary Check
+      type: xlrelease.GateTask
+      conditions:
+      - name: No major security defect
+        type: xlrelease.GateCondition
+    - name: group
+      type: xlrelease.ParallelGroup
+      tasks:
+      - name: Product Owner Validation
+        type: xlrelease.GateTask
+      - name: user input
+        type: xlrelease.UserInputTask
+        description: Please enter the required information below.
+    color: '#498500'
+  - phase: QA
+    tasks:
+    - name: Get Jira Tickets
+      type: jira.Query
+      query: "project = 2366-rm AND status in (Done) AND fixVersion = ${release_version}"
+      variableMapping:
+        pythonScript.issues: "${Jira Tickets List}"
+    - name: Get list of components to deploy
+      type: xlrelease.Task
+      flagStatus: ATTENTION_NEEDED
+      flagComment: Task 'Get list of components to deploy' in Phase 'QA' has been
+        replaced by a manual task. The task of type 'jira.GetIssuesDetailsSet' could
+        not be found because of a missing plugin.
+      taskRecoverOp: RUN_SCRIPT
+      variableMapping:
+        pythonScript.issuesIds: "${Jira Tickets List}"
+        pythonScript.issuesDetails: "${Components List}"
+    - name: Build Version
+      type: xlrelease.ScriptTask
+      locked: true
+      script: |-
+        releaseVariables['Front_Version']= "${release_version}"
+        releaseVariables['Back_Version']= "${release_version}"
+        releaseVariables['Data_Version']= "${release_version}"
+    - name: Build
+      type: xlrelease.SequentialGroup
+      tasks:
+      - name: Build Front Release
+        type: jenkins.Build
+        jobName: Hello Word
+        facets:
+        - type: udm.DeploymentTaskFacet
+          variableMapping:
+            version: "${release_version}"
+        precondition: "result = ('Front' in releaseVariables['Components List'])"
+      - name: Build Back Release
+        type: jenkins.Build
+        jobName: Hello Word
+        facets:
+        - type: udm.DeploymentTaskFacet
+          variableMapping:
+            version: "${release_version}"
+        precondition: "result = ('Back' in releaseVariables['Components List'])"
+        tags:
+        - Build
+      - name: Build Data Release
+        type: jenkins.Build
+        jobName: Hello Word/
+        facets:
+        - type: udm.DeploymentTaskFacet
+          variableMapping:
+            version: "${release_version}"
+        precondition: "result = ('Data' in releaseVariables['Components List'])"
+    - name: Deployment plan
+      type: xlrelease.ParallelGroup
+      tasks:
+      - name: Deploy Database Module
+        type: xlrelease.UnknownType
+        flagStatus: ATTENTION_NEEDED
+        flagComment: Task 'Deploy Database Module' in Phase 'QA' has been replaced
+          by an unknown task. The task of type 'ansible.LaunchJob' could not be found
+          because of a missing plugin.
+        facets:
+        - type: udm.DeploymentTaskFacet
+          variableMapping:
+            version: "${Data_Version}"
+        precondition: "result = ('Data' in releaseVariables['Components List'])"
+        tags:
+        - Deployment
+        - Ansible
+        - database
+      - name: Deployment
+        type: xlrelease.SequentialGroup
+        tasks:
+        - name: Deploy Front Module
+          type: xlrelease.UnknownType
+          flagStatus: ATTENTION_NEEDED
+          flagComment: Task 'Deploy Front Module' in Phase 'QA' has been replaced
+            by an unknown task. The task of type 'ansible.LaunchJob' could not be
+            found because of a missing plugin.
+          facets:
+          - type: udm.DeploymentTaskFacet
+            variableMapping:
+              version: "${Front_Version}"
+          precondition: "result = ('Front' in releaseVariables['Components List'])"
+          tags:
+          - Deployment
+          - Ansible
+        - name: Deploy Back Module
+          type: xlrelease.UnknownType
+          flagStatus: ATTENTION_NEEDED
+          flagComment: Task 'Deploy Back Module' in Phase 'QA' has been replaced by
+            an unknown task. The task of type 'ansible.LaunchJob' could not be found
+            because of a missing plugin.
+          facets:
+          - type: udm.DeploymentTaskFacet
+            variableMapping:
+              version: "${Back_Version}"
+          precondition: "result = ('Back' in releaseVariables['Components List'])"
+          tags:
+          - Deployment
+          - Ansible
+    - name: Sanitary Check
+      type: xlrelease.GateTask
+      conditions:
+      - name: UI available
+        type: xlrelease.GateCondition
+      - name: Login possible
+        type: xlrelease.GateCondition
+      - name: Navigation possible
+        type: xlrelease.GateCondition
+    - name: End User Validation
+      type: xlrelease.GateTask
+    - name: Product Owner Validation
+      type: xlrelease.GateTask
+    color: '#991C71'
+  - phase: PreProd
+    tasks:
+    - name: Create Change Request  From Template
+      type: webhook.JsonWebhook
+      URL: https://bnppuat.service-now.com/api/now/v1/import/u_imp_change_request
+      method: POST
+      body: |-
+        {
+        "u_requested_by":"981330",
+        "u_company":"BNP Paribas SA",
+        "u_location":"Valmy 1",
+        "u_category":"[App] Maintenance",
+        "u_type":"standard",
+        "u_short_description":"Created from XLR",
+        "u_configuration_item":"s00v09948087",
+        "u_assignment_group":"BNPP_ITGP_ODM09_CHG",
+        "u_std_change_producer_version":"[STD] [BP2I-DP14B] ARA agents upgrade to version"
+        }
+      username: xl.integration
+      proxyHost: proxytcp.fr.net.intra
+      proxyPort: "3131"
+      proxyUsername: "981330"
+      jsonPathExpression: result
+      variableMapping:
+        pythonScript.result: "${result}"
+      tags:
+      - Change Request
+    - name: Wait for Service Now Approval
+      type: xlrelease.ScriptTask
+    - name: Go for PreProd
+      type: xlrelease.GateTask
+      facets:
+      - type: udm.DeploymentTaskFacet
+        variableMapping:
+          version: "${release_version}"
+      conditions:
+      - name: Test infrastructure
+        type: xlrelease.GateCondition
+      - name: Check CPU
+        type: xlrelease.GateCondition
+      - name: Memory check
+        type: xlrelease.GateCondition
+      - name: Network check
+        type: xlrelease.GateCondition
+    - name: Deployment plan
+      type: xlrelease.ParallelGroup
+      tasks:
+      - name: Deploy Database Module
+        type: xlrelease.UnknownType
+        flagStatus: ATTENTION_NEEDED
+        flagComment: Task 'Deploy Database Module' in Phase 'PreProd' has been replaced
+          by an unknown task. The task of type 'ansible.LaunchJob' could not be found
+          because of a missing plugin.
+        facets:
+        - type: udm.DeploymentTaskFacet
+          variableMapping:
+            version: "${Data_Version}"
+        precondition: "result = ('Data' in releaseVariables['Components List'])"
+        tags:
+        - Deployment
+        - Ansible
+        - database
+      - name: Deployment
+        type: xlrelease.SequentialGroup
+        tasks:
+        - name: Deploy Front Module
+          type: xlrelease.UnknownType
+          flagStatus: ATTENTION_NEEDED
+          flagComment: Task 'Deploy Front Module' in Phase 'PreProd' has been replaced
+            by an unknown task. The task of type 'ansible.LaunchJob' could not be
+            found because of a missing plugin.
+          facets:
+          - type: udm.DeploymentTaskFacet
+            variableMapping:
+              version: "${Front_Version}"
+          precondition: "result = ('Front' in releaseVariables['Components List'])"
+          tags:
+          - Deployment
+          - Ansible
+        - name: Deploy Back Module
+          type: xlrelease.UnknownType
+          flagStatus: ATTENTION_NEEDED
+          flagComment: Task 'Deploy Back Module' in Phase 'PreProd' has been replaced
+            by an unknown task. The task of type 'ansible.LaunchJob' could not be
+            found because of a missing plugin.
+          facets:
+          - type: udm.DeploymentTaskFacet
+            variableMapping:
+              version: "${Back_Version}"
+          precondition: "result = ('Back' in releaseVariables['Components List'])"
+          tags:
+          - Deployment
+          - Ansible
+    - name: Sanitary Check
+      type: xlrelease.GateTask
+      conditions:
+      - name: UI available
+        type: xlrelease.GateCondition
+      - name: Login possible
+        type: xlrelease.GateCondition
+      - name: Navigation possible
+        type: xlrelease.GateCondition
+    - name: Product Owner Validation
+      type: xlrelease.GateTask
+    color: '#FFAB00'
+  - phase: Prod
+    tasks:
+    - name: Create Change Request  From Template
+      type: webhook.JsonWebhook
+      URL: https://bnppuat.service-now.com/api/now/v1/import/u_imp_change_request
+      method: POST
+      body: |-
+        {
+        "u_requested_by":"981330",
+        "u_company":"BNP Paribas SA",
+        "u_location":"Valmy 1",
+        "u_category":"[App] Maintenance",
+        "u_type":"standard",
+        "u_short_description":"Created from XLR",
+        "u_configuration_item":"s00v09948087",
+        "u_assignment_group":"BNPP_ITGP_ODM09_CHG",
+        "u_std_change_producer_version":"[STD] [BP2I-DP14B] ARA agents upgrade to version"
+        }
+      username: xl.integration
+      proxyHost: proxytcp.fr.net.intra
+      proxyPort: "3131"
+      proxyUsername: "981330"
+      jsonPathExpression: result
+      variableMapping:
+        pythonScript.result: "${result}"
+      tags:
+      - Change Request
+    - name: Wait For PACT
+      type: xlrelease.GateTask
+      tags:
+      - pact
+    - name: Go for Prod
+      type: xlrelease.GateTask
+      facets:
+      - type: udm.DeploymentTaskFacet
+        variableMapping:
+          version: "${release_version}"
+      tags:
+      - production
+      conditions:
+      - name: Memory check
+        type: xlrelease.GateCondition
+      - name: CPU check
+        type: xlrelease.GateCondition
+      - name: Network flow
+        type: xlrelease.GateCondition
+      - name: Space disk check
+        type: xlrelease.GateCondition
+    - name: Add Maintenance Page
+      type: xlrelease.ScriptTask
+    - name: Deployment plan
+      type: xlrelease.ParallelGroup
+      tasks:
+      - name: Deploy Database Module
+        type: xlrelease.UnknownType
+        flagStatus: ATTENTION_NEEDED
+        flagComment: Task 'Deploy Database Module' in Phase 'Prod' has been replaced
+          by an unknown task. The task of type 'ansible.LaunchJob' could not be found
+          because of a missing plugin.
+        facets:
+        - type: udm.DeploymentTaskFacet
+          variableMapping:
+            version: "${Data_Version}"
+        precondition: "result = ('Data' in releaseVariables['Components List'])"
+        tags:
+        - Deployment
+        - Ansible
+        - database
+        - production
+      - name: Deployment
+        type: xlrelease.SequentialGroup
+        tasks:
+        - name: Deploy Front Module
+          type: xlrelease.UnknownType
+          flagStatus: ATTENTION_NEEDED
+          flagComment: Task 'Deploy Front Module' in Phase 'Prod' has been replaced
+            by an unknown task. The task of type 'ansible.LaunchJob' could not be
+            found because of a missing plugin.
+          facets:
+          - type: udm.DeploymentTaskFacet
+            variableMapping:
+              version: "${Front_Version}"
+          precondition: "result = ('Front' in releaseVariables['Components List'])"
+          tags:
+          - Deployment
+          - Ansible
+          - production
+        - name: Deploy Back Module
+          type: xlrelease.UnknownType
+          flagStatus: ATTENTION_NEEDED
+          flagComment: Task 'Deploy Back Module' in Phase 'Prod' has been replaced
+            by an unknown task. The task of type 'ansible.LaunchJob' could not be
+            found because of a missing plugin.
+          facets:
+          - type: udm.DeploymentTaskFacet
+            variableMapping:
+              version: "${Back_Version}"
+          precondition: "result = ('Back' in releaseVariables['Components List'])"
+          tags:
+          - Deployment
+          - Ansible
+          - production
+          - at risk
+    - name: Remove Maintenance Page
+      type: xlrelease.ScriptTask
+    - name: Sanitary Check
+      type: xlrelease.GateTask
+      conditions:
+      - name: UI available
+        type: xlrelease.GateCondition
+      - name: Login possible
+        type: xlrelease.GateCondition
+      - name: Navigation possible
+        type: xlrelease.GateCondition
+    - name: Product Owner Validation
+      type: xlrelease.GateTask
+    color: '#CC4A3C'
+  realFlagStatus: ATTENTION_NEEDED
+  tags:
+  - Release Majeur
+  - jpetstore
+  variables:
+  - type: xlrelease.StringVariable
+    key: release_version
+  - type: xlrelease.SetStringVariable
+    key: Components List
+    requiresValue: false
+    showOnReleaseStart: false
+    value:
+    - Common Module
+  - type: xlrelease.MapStringStringVariable
+    key: Jira Tickets List
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: Input Snapshot Front version
+    showOnReleaseStart: false
+    value: 0.2.4-SNAPSHOT
+  - type: xlrelease.StringVariable
+    key: Input Snapshot Back version
+    showOnReleaseStart: false
+    value: 0.1.7-SNAPSHOT
+  - type: xlrelease.StringVariable
+    key: Input Snapshot Database version
+    showOnReleaseStart: false
+    value: 0.1.4-SNAPSHOT
+  - type: xlrelease.StringVariable
+    key: Input Front version
+    showOnReleaseStart: false
+    value: 3.5.5
+  - type: xlrelease.StringVariable
+    key: Input Back version
+    showOnReleaseStart: false
+    value: 3.5.10
+  - type: xlrelease.StringVariable
+    key: Input Database version
+    showOnReleaseStart: false
+    value: "1.2"
+  - type: xlrelease.StringVariable
+    key: result
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: Front_Version
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: Back_Version
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: Data_Version
+    requiresValue: false
+    showOnReleaseStart: false
+  - type: xlrelease.StringVariable
+    key: Ansible User
+    showOnReleaseStart: false
+  - type: xlrelease.PasswordStringVariable
+    key: Ansible Password
+    requiresValue: false
+  scriptUsername: admin
+  scriptUserPassword: !value "xlrelease_Release_JpetStore2___Demo_Release_as_code_scriptUserPassword"
+  riskProfile: Default risk profile
+- notifications:
+  - notification: TASK_OVERDUE
+    priority: High
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release is overdue.
+
+      After the task is completed, please mark it as Completed in Release.
+    roles:
+    - Watcher
+    - Release Admin
+    - Task Owner
+  - notification: TASK_FLAGGED
+    priority: High
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The status of the **${task.title}** task in the **${release.title}** release was changed to **${task.flagStatus}** with the following comment:
+
+      **${release.flagComment}**
+    roles:
+    - Watcher
+    - Release Admin
+    - Task Team
+  - notification: AUDIT_REPORT_JOB_ABORTED
+    priority: Normal
+    subject: "[Release] Audit report was aborted"
+    body: |-
+      **Your audit report was aborted!**
+
+       Please try to generate it again or contact your Release administrator for assistance.
+  - notification: MANUAL_TASK_STARTED
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release has started and is assigned to you or your team.
+
+      After the task is completed, please mark it as Completed in Release.
+    roles:
+    - Watcher
+    - Task Owner
+  - notification: TASK_FAILED
+    priority: High
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release has failed.
+
+      Other tasks could still be in progress, but the release will stop after they complete.
+
+      You can retry the task, reassign it to somebody else or abort the release.
+    roles:
+    - Watcher
+    - Task Team
+    - Task Owner
+  - notification: USER_MENTIONED
+    priority: Normal
+    subject: "[Release] ${mentionedByFullName} mentioned you on ${release.title}:\
+      \ ${task.title}"
+    body: "**${mentionedByFullName}** mentioned you on the **${task.title}** task\
+      \ in the **${release.title}** release:"
+  - notification: COMMENT_ADDED
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      **${comment.authorFullName}** commented on the **${task.title}** task in the **${release.title}** release:
+
+      ${comment.text}
+    roles:
+    - Watcher
+    - Task Team
+    - Task Owner
+  - notification: AUDIT_REPORT_JOB_FAILED
+    priority: Normal
+    subject: "[Release] Audit report has failed"
+    body: |-
+      **Your audit report has failed!**
+
+       Please try to generate it again or contact your Release administrator for assistance.
+  - notification: RELEASE_FAILED
+    priority: High
+    subject: "[Release] ${release.title}"
+    body: |-
+      The **${release.title}** release has failed due to a task failure.
+
+      The release is now stopped.
+
+      You can retry the failed task, reassign it to somebody else or abort the release.
+    roles:
+    - Release Admin
+  - notification: TASK_DUE_SOON
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release is due in **${task.dueInHours}** hours and **${task.dueInMinutes}** minutes.
+
+      After the task is completed, please mark it as Completed in Release.
+    roles:
+    - Watcher
+    - Release Admin
+    - Task Owner
+  - notification: ACTIVE_TASK_UNASSIGNED
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release is active but not assigned to anyone anymore.
+
+      Please assign the task to a user or a team.
+    roles:
+    - Watcher
+    - Task Team
+    - Task Owner
+  - notification: RELEASE_FAILING
+    priority: High
+    subject: "[Release] ${release.title}"
+    body: |-
+      The **${release.title}** release is failing due to a task failure.
+
+      Other tasks may still be in progress, but the release will stop after they complete.
+
+      You can retry the failed task, reassign it to somebody else or abort the release.
+    roles:
+    - Release Admin
+  - notification: RELEASE_FLAGGED
+    priority: High
+    subject: "[Release] ${release.title}"
+    body: |-
+      The status of the **${release.title}** release was changed to **${release.flagStatus}** with the following comment:
+
+      **${release.flagComment}**
+    roles:
+    - Release Admin
+  - notification: MANUAL_TASK_STARTED_WITHOUT_OWNER
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release has started, but it is not assigned.
+
+      Please assign the task to a user or a team.
+    roles:
+    - Watcher
+    - Release Admin
+  - notification: RELEASE_COMPLETED
+    priority: Normal
+    subject: "[Release] ${release.title}"
+    body: "The **${release.title}** release has been completed."
+    roles:
+    - Release Admin
+  - notification: TASK_WAITING_FOR_INPUT
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: |-
+      The **${task.title}** task in the **${release.title}** release needs your input.
+
+      Please enter the required information so the release can continue.
+    roles:
+    - Watcher
+    - Task Team
+    - Task Owner
+  - notification: AUDIT_REPORT_JOB_COMPLETED
+    priority: Normal
+    subject: "[Release] Report '${report.reportName}' is ready"
+    body: |-
+      **Your audit report is complete!**
+
+       '${report.reportName}' is ready for download.
+  - notification: RELEASE_STARTED
+    priority: Normal
+    subject: "[Release] ${release.title}"
+    body: "The **${release.title}** release has been started."
+    bulkSubject: "[Release] Multiple releases started"
+    bulkBody: |-
+      The following releases have been started:
+
+      ${#releases}
+      * [${title}](${url})
+      ${/releases}
+    roles:
+    - Release Admin
+  - notification: RELEASE_ABORTED
+    priority: Normal
+    subject: "[Release] ${release.title}"
+    body: "The **${release.title}** release has been aborted."
+    bulkSubject: "[Release] Multiple releases aborted"
+    bulkBody: |-
+      The following releases have been aborted:
+
+      ${#releases}
+      * [${title}](${url})
+      ${/releases}
+    roles:
+    - Release Admin
+  - notification: ACTIVE_TASK_ASSIGNED
+    priority: Normal
+    subject: "[Release] ${release.title}: ${task.title}"
+    body: "The active task **${task.title}** in the **${release.title}** release is\
+      \ now assigned to ${task.ownerFullName}."
+    roles:
+    - Watcher
+    - Task Team
+    - Task Owner
