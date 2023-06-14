@@ -1,6 +1,6 @@
 # Exported from:        https://ip-172-31-39-126.eu-west-3.compute.internal:5516/
 # Release version:      22.2.0
-# Date created:         Wed Jun 14 07:42:39 UTC 2023
+# Date created:         Wed Jun 14 07:49:45 UTC 2023
 
 ---
 apiVersion: xl-release/v1
@@ -594,6 +594,21 @@ spec:
     - name: Wait for Service Now Approval
       type: xlrelease.ScriptTask
     - name: Go for PreProd
+      type: xlrelease.GateTask
+      facets:
+      - type: udm.DeploymentTaskFacet
+        variableMapping:
+          version: "${release_version}"
+      conditions:
+      - name: Test infrastructure
+        type: xlrelease.GateCondition
+      - name: Check CPU
+        type: xlrelease.GateCondition
+      - name: Memory check
+        type: xlrelease.GateCondition
+      - name: Network check
+        type: xlrelease.GateCondition
+    - name: Go for PreProd (copy)
       type: xlrelease.GateTask
       facets:
       - type: udm.DeploymentTaskFacet
