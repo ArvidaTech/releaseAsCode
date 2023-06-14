@@ -1,6 +1,6 @@
 # Exported from:        https://ip-172-31-39-126.eu-west-3.compute.internal:5516/
 # Release version:      22.2.0
-# Date created:         Wed Jun 14 07:38:48 UTC 2023
+# Date created:         Wed Jun 14 07:42:39 UTC 2023
 
 ---
 apiVersion: xl-release/v1
@@ -109,11 +109,6 @@ spec:
   - phase: QA
     tasks:
     - name: Get Jira Tickets
-      type: jira.Query
-      query: "project = 2366-rm AND status in (Done) AND fixVersion = ${release_version}"
-      variableMapping:
-        pythonScript.issues: "${Jira Tickets List}"
-    - name: Get Jira Tickets (copy)
       type: jira.Query
       query: "project = 2366-rm AND status in (Done) AND fixVersion = ${release_version}"
       variableMapping:
@@ -252,6 +247,8 @@ spec:
       - name: Navigation possible
         type: xlrelease.GateCondition
     - name: Product Owner Validation
+      type: xlrelease.GateTask
+    - name: Product Owner Validation (copy)
       type: xlrelease.GateTask
     color: '#FFAB00'
   - phase: Prod
