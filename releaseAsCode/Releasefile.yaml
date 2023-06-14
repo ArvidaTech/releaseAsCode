@@ -1,6 +1,6 @@
 # Exported from:        https://ip-172-31-39-126.eu-west-3.compute.internal:5516/
 # Release version:      22.2.0
-# Date created:         Tue Jun 13 15:17:36 UTC 2023
+# Date created:         Wed Jun 14 07:38:48 UTC 2023
 
 ---
 apiVersion: xl-release/v1
@@ -477,6 +477,11 @@ spec:
       type: sonar.checkCompliance
       resource: my-sonar-app
     - name: Sanitary Check
+      type: xlrelease.GateTask
+      conditions:
+      - name: No major security defect
+        type: xlrelease.GateCondition
+    - name: Sanitary Check (copy)
       type: xlrelease.GateTask
       conditions:
       - name: No major security defect
