@@ -1,6 +1,6 @@
 # Exported from:        https://ip-172-31-39-126.eu-west-3.compute.internal:5516/
 # Release version:      22.2.0
-# Date created:         Wed Jun 14 08:03:25 UTC 2023
+# Date created:         Thu Jun 15 10:22:07 UTC 2023
 
 ---
 apiVersion: xl-release/v1
@@ -25,6 +25,13 @@ spec:
       type: jira.Query
       username: BpH0O1hLS6gMxyVdAZD7SRceeOL7poqq
       apiToken: !value "jira_Query_Get_Jira_Tickets__copy__apiToken"
+      query: project = arvida test
+      variableMapping:
+        pythonScript.issues: "${Jira Tickets List}"
+    - name: Get Jira Tickets (copy) (copy)
+      type: jira.Query
+      username: BpH0O1hLS6gMxyVdAZD7SRceeOL7poqq
+      apiToken: !value "jira_Query_Get_Jira_Tickets__copy___copy__apiToken"
       query: project = arvida test
       variableMapping:
         pythonScript.issues: "${Jira Tickets List}"
